@@ -12,7 +12,7 @@ async function fixture() {
   await new Promise(resolve => app.listen(3210, '127.0.0.1', resolve));
   let cookie = '', csrf = '';
   const request = async (url, options = {}) => {
-    const headers = { ...options.headers }; if (cookie) headers.Cookie = cookie; if (csrf) headers['X-CSRF-Token'] = csrf; if (options.method && options.method !== 'GET') headers.Origin = env.PUBLIC_ORIGIN;
+    const headers = { Connection: 'close', ...options.headers }; if (cookie) headers.Cookie = cookie; if (csrf) headers['X-CSRF-Token'] = csrf; if (options.method && options.method !== 'GET') headers.Origin = env.PUBLIC_ORIGIN;
     const response = await fetch(`${env.PUBLIC_ORIGIN}${url}`, { redirect: 'manual', ...options, headers });
     const setCookie = response.headers.get('set-cookie'); if (setCookie) cookie = setCookie.split(';')[0]; return response;
   };
@@ -64,7 +64,23 @@ test('production integration configuration is rejected before startup', () => {
   assert.throws(() => createApp({ env: { DATA_MODE: 'preview', SHOPIFY_ADMIN_ACCESS_TOKEN: 'test-marker-not-a-token' } }), /must not be attached/);
 });
 
-test('customer preview contains honest empty states and an editor-only Shopify gate', () => {
-  const html = fs.readFileSync(path.join(__dirname, 'customer.html'), 'utf8'); assert.match(html, /No live orders have been loaded/); assert.match(html, /No opt-in is recorded/); assert.match(html, /does not create or store a separate customer password/); assert.doesNotMatch(html, /fetch\(|customer\.|\/admin\/api/i);
+test('customer preview contains labelled sample data and an editor-only Shopify gate', () => {
+  const html = fs.readFileSync(path.join(__dirname, 'customer.html'), 'utf8'); assert.match(html, /Sample customer/); assert.match(html, /No opt-in is recorded/); assert.match(html, /does not create or store a separate customer password/); assert.doesNotMatch(html, /\/admin\/api/i);
   const liquid = fs.readFileSync(path.join(__dirname, 'index.mcc-customer-preview.liquid'), 'utf8'); assert.match(liquid, /request\.design_mode/); assert.match(liquid, /Shopify editor-only review/);
+  const script = fs.readFileSync(path.join(__dirname, 'customer.js'), 'utf8'); assert.doesNotMatch(script, /localStorage|sessionStorage|\/admin\/api|\.innerHTML\s*=\s*customer/i);
+  for (const label of ['Dashboard', 'My Orders', 'My Profile', 'My Wishlist', 'Recently Viewed', 'My Subscription', 'Change Password', 'Logout']) assert.ok(script.includes(label));
+});
+
+test('customer assets are protected and ordinary Shopify visitors see no dashboard', async () => {
+  const f = await fixture();
+  try {
+    for (const route of ['/customer', '/customer.css', '/customer.js']) assert.equal((await f.request(route)).status, 303);
+    await f.request('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'reviewer', password: 'sixteen-character-preview-only' }) });
+    for (const route of ['/customer', '/customer.css', '/customer.js']) assert.equal((await f.request(route)).status, 200);
+  } finally { await f.close(); }
+  const { Liquid } = require('liquidjs'); const engine = new Liquid();
+  engine.registerTag('layout', { render() { return ''; } });
+  const liquid = fs.readFileSync(path.join(__dirname, 'index.mcc-customer-preview.liquid'), 'utf8');
+  const output = await engine.parseAndRender(liquid, { request: { design_mode: false } });
+  assert.match(output, /authenticated Shopify theme editor/); assert.doesNotMatch(output, /Aarav|Total Orders|customer.js|profile-form/);
 });

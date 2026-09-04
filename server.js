@@ -125,6 +125,8 @@ function createApp(config = {}) {
       if (url.pathname === '/' && req.method === 'GET') { res.writeHead(303, { Location: '/manager' }); return res.end(); }
       if (url.pathname === '/manager' && req.method === 'GET') return html(res, 200, read('manager.html'));
       if (url.pathname === '/customer' && req.method === 'GET') return html(res, 200, read('customer.html'));
+      if (url.pathname === '/customer.css' && req.method === 'GET') { res.writeHead(200, { 'Content-Type': 'text/css' }); return res.end(read('customer.css')); }
+      if (url.pathname === '/customer.js' && req.method === 'GET') { res.writeHead(200, { 'Content-Type': 'text/javascript' }); return res.end(read('customer.js')); }
       if (url.pathname === '/manager.js' && req.method === 'GET') { res.writeHead(200, { 'Content-Type': 'text/javascript' }); return res.end(read('manager.js')); }
       const landing = url.pathname.match(/^\/preview\/pages\/([a-z0-9-]+)$/);
       if (landing && req.method === 'GET') {

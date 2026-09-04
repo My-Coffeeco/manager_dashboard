@@ -9,7 +9,7 @@ This directory is intentionally isolated from the existing middleware. It provid
 - The only credentials are a single preview-reviewer username/password configured in Render. There is no public signup.
 - Landing-page records and audit entries use temporary SQLite storage. Render free-service redeploys may reset them.
 - Six landing pages begin as `draft`; their production status is deliberately not claimed.
-- Customer accounts, orders, tracking, addresses, loyalty and notifications are honest disconnected states.
+- The customer preview uses explicitly labelled sample identity data and empty orders/wishlist/subscription states. Profile Save works in browser memory only and resets on refresh; no customer changes are sent anywhere. Tracking, addresses, loyalty and notifications remain disconnected.
 
 ## Render preview service
 
@@ -17,7 +17,7 @@ Repository: `Mycoffeeco/mycoffeeco-dashboard-preview` (private). This is a separ
 
 Root directory: leave blank (repository root).
 
-Build: `npm ci`  
+Build: `npm ci && npm test`  
 Start: `npm start`  
 Health: `/healthz`
 
@@ -36,6 +36,8 @@ The main branch of this separate repository is a preview branch, not the origina
 Manager URL: `/manager`; customer design URL: `/customer`. Both require reviewer authentication. This access gate is not a replacement customer login. Customer authentication remains a Shopify-only integration to activate after approval.
 
 The Raleway font is licensed under the SIL Open Font License; see `OFL-Raleway.txt`. The logo is the official asset supplied by the existing public My Coffee Co. storefront.
+
+The customer layout uses brand blue `#0A06FF`, brand yellow `#F6A90A` and white. Styles and scripts are isolated from the manager dashboard. `npm run build:customer` packages the same source into the gated Liquid template. Store header links open the existing store in a new tab; preview search/cart controls do not read or mutate Shopify data. Change Password explains the Shopify-owned account security boundary; Logout ends the reviewer session only after confirmation.
 
 ## Shopify design preview
 
