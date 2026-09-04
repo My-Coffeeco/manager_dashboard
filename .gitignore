@@ -1,0 +1,7 @@
+node_modules/
+.npm-cache/
+.env*
+*.sqlite*
+*.log
+.local-secret
+local-qa.js

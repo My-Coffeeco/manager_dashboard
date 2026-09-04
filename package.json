@@ -1,0 +1,10 @@
+{
+  "name": "mcc-dashboard-preview",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Isolated, access-controlled My Coffee Co dashboard preview. No production connectors.",
+  "type": "commonjs",
+  "engines": { "node": ">=24.0.0 <25" },
+  "scripts": { "start": "node server.js", "test": "node --test test.js" },
+  "dependencies": { "liquidjs": "10.21.1" }
+}
