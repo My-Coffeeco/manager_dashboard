@@ -1,4 +1,35 @@
-const http = require('node:http');
+
+      const managerAssets = {
+        '/admin/ui.js': ['admin-ui.js', 'text/javascript'],
+        '/admin/ui.css': ['admin-ui.css', 'text/css'],
+        '/admin/polish.css': ['admin-polish.css', 'text/css'],
+        '/admin/raleway.woff2': ['raleway.woff2', 'font/woff2'],
+        '/admin/logo.avif': ['logo.avif', 'image/avif'],
+      };
+      if (req.method === 'GET' && managerAssets[url.pathname]) {
+        const [file, type] = managerAssets[url.pathname]; res.writeHead(200, { 'Content-Type': type }); return res.end(read(file));
+      }
+      if (url.pathname === '/admin/auth/me' && req.method === 'GET') return json(res, 200, {
+        name: 'Manager preview', role: 'store_manager', store_id: 'mycoffeeco-online', csrf: session.csrf,
+        permissions: ['dashboard', 'orders', 'inventory', 'inquiries'],
+      });
+      if (url.pathname === '/admin/dashboard' && req.method === 'GET') return json(res, 200, {
+        store: { id: 'mycoffeeco-online', name: 'My Coffee Co. Online' }, sources: {},
+        revenue_paise: null, open_orders: null, low_stock: null, open_inquiries: null,
+        orders: [], inquiries: [], alerts: [],
+        data_notice: 'No live data connected yet. Shopify, Shiprocket and Supabase will be connected in the next phase.',
+      });
+      if (url.pathname === '/admin/alerts/read' && req.method === 'POST') return json(res, 200, { ok: true });
+      if (url.pathname === '/admin/auth/logout' && req.method === 'POST') {
+        store.audit(session.actor, 'preview_sign_out', 'manager_dashboard', null, null);
+        store.db.prepare('DELETE FROM sessions WHERE token_hash=?').run(tokenHash);
+        res.setHeader('Set-Cookie', 'mcc_preview=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0' + (secure ? '; Secure' : ''));
+        return json(res, 200, { ok: true });
+      }
+if (url.pathname === '/manager' && req.method === 'GET') {
+        const dashboard = read('admin.html').replace('<main>', '<main><p id="data-notice" role="status"></p>');
+        return html(res, 200, dashboard);
+      }
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
