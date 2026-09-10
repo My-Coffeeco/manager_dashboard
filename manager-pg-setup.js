@@ -1,8 +1,25 @@
 'use strict';
 const crypto = require('node:crypto');
+const fs = require('node:fs');
+const path = require('node:path');
 const { Pool } = require('pg');
 const { connectionOptions, transaction } = require('./manager-pg-db');
 const { passwordHash } = require('./admin-db');
+
+// The Render Free service has no shell, so the explicitly enabled one-time
+// setup can apply the reviewed private schema with the owner connection.
+// It only runs when MANAGER_PROVISION_DATABASE=1 and refuses to touch an
+// existing mcc_manager schema.
+async function ensureManagerSchema(client) {
+  const namespace = (await client.query("SELECT to_regnamespace('mcc_manager') AS namespace")).rows[0]?.namespace;
+  if (namespace) return false;
+  const role = (await client.query("SELECT 1 FROM pg_roles WHERE rolname='mcc_manager_app'")).rowCount;
+  if (role) throw Error('A partial manager role exists without its schema; finish the reviewed schema setup first.');
+  const sql = fs.readFileSync(path.join(__dirname, 'manager-schema.sql'), 'utf8')
+    .replace(/\bBEGIN;\s*/, '').replace(/\s*COMMIT;\s*$/, '');
+  await client.query(sql);
+  return true;
+}
 
 async function seedManager(pool, password) {
   return transaction(pool, async client => {
@@ -43,6 +60,7 @@ async function provisionDatabaseRole(env = process.env) {
   pool.on('error', () => console.error('Database setup connection interrupted.'));
   try {
     return await transaction(pool, async client => {
+      const schemaCreated = await ensureManagerSchema(client);
       await client.query('SELECT id FROM mcc_manager.installation WHERE id=1 FOR UPDATE');
       const role = (await client.query(`SELECT rolcanlogin, rolsuper, rolcreatedb, rolcreaterole, rolreplication, rolbypassrls
         FROM pg_roles WHERE rolname='mcc_manager_app'`)).rows[0];
@@ -53,8 +71,8 @@ async function provisionDatabaseRole(env = process.env) {
       // PostgreSQL identifiers are fixed and the server quotes the password literal safely.
       const sql = (await client.query(`SELECT format('ALTER ROLE mcc_manager_app LOGIN PASSWORD %L', $1::text) AS sql`, [runtime.password])).rows[0].sql;
       await client.query(sql);
-      return true;
+      return schemaCreated || true;
     });
   } finally { await pool.end(); }
 }
-module.exports = { seedManager, provisionDatabaseRole };
+module.exports = { seedManager, provisionDatabaseRole, ensureManagerSchema };
