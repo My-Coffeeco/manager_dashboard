@@ -4,19 +4,19 @@
   "private": true,
   "description": "Isolated, access-controlled My Coffee Co dashboard preview. No production connectors.",
   "type": "commonjs",
-  "engines": { "node": ">=24.0.0 <25" },
-  "scripts": { "start": "node manager-pg-server.js", "start:preview": "node server.js", "start:admin": "node admin-server.js", "start:manager:pg": "node manager-pg-server.js", "test:manager:pg": "node --test manager-pg.test.js", "seed:admin": "node admin-seed.js", "mail:admin": "node admin-mail.js", "test:admin": "node --test admin.test.js", "build:customer": "node build-customer-template.js", "test": "node build-customer-template.js --check && node --check customer.js && node --test test.js admin.test.js manager-pg.test.js manager-seed.test.js" },
-  "dependencies": { "liquidjs": "10.29.0", "pg": "8.23.0" },
-  "devDependencies": { "@electric-sql/pglite": "0.5.8" }
-}
-{
-  "name": "mcc-dashboard-preview",
-  "version": "0.1.0",
-  "private": true,
-  "description": "Isolated, access-controlled My Coffee Co dashboard preview. No production connectors.",
-  "type": "commonjs",
-  "engines": { "node": ">=24.0.0 <25" },
-  "scripts": { "start": "node server.js", "start:admin": "node admin-server.js", "start:manager:pg": "node manager-pg-server.js", "test:manager:pg": "node --test manager-pg.test.js", "seed:admin": "node admin-seed.js", "mail:admin": "node admin-mail.js", "test:admin": "node --test admin.test.js", "build:customer": "node build-customer-template.js", "test": "node build-customer-template.js --check && node --check customer.js && node --test test.js admin.test.js manager-pg.test.js manager-seed.test.js" },
-  "dependencies": { "liquidjs": "10.29.0", "pg": "8.23.0" },
-  "devDependencies": { "@electric-sql/pglite": "0.5.8" }
+  "engines": {"node": ">=24.0.0 <25"},
+  "scripts": {
+    "start": "node manager-pg-server.js",
+    "start:preview": "node server.js",
+    "start:admin": "node admin-server.js",
+    "start:manager:pg": "node manager-pg-server.js",
+    "test:manager:pg": "node --test manager-pg.test.js",
+    "seed:admin": "node admin-seed.js",
+    "mail:admin": "node admin-mail.js",
+    "test:admin": "node --test admin.test.js",
+    "build:customer": "node build-customer-template.js",
+    "test": "node build-customer-template.js --check && node --check customer.js && node --test test.js admin.test.js manager-pg.test.js manager-seed.test.js"
+  },
+  "dependencies": {"liquidjs": "10.29.0", "pg": "8.23.0"},
+  "devDependencies": {"@electric-sql/pglite": "0.5.8"}
 }
