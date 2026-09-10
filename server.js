@@ -1,35 +1,4 @@
-
-      const managerAssets = {
-        '/admin/ui.js': ['admin-ui.js', 'text/javascript'],
-        '/admin/ui.css': ['admin-ui.css', 'text/css'],
-        '/admin/polish.css': ['admin-polish.css', 'text/css'],
-        '/admin/raleway.woff2': ['raleway.woff2', 'font/woff2'],
-        '/admin/logo.avif': ['logo.avif', 'image/avif'],
-      };
-      if (req.method === 'GET' && managerAssets[url.pathname]) {
-        const [file, type] = managerAssets[url.pathname]; res.writeHead(200, { 'Content-Type': type }); return res.end(read(file));
-      }
-      if (url.pathname === '/admin/auth/me' && req.method === 'GET') return json(res, 200, {
-        name: 'Manager preview', role: 'store_manager', store_id: 'mycoffeeco-online', csrf: session.csrf,
-        permissions: ['dashboard', 'orders', 'inventory', 'inquiries'],
-      });
-      if (url.pathname === '/admin/dashboard' && req.method === 'GET') return json(res, 200, {
-        store: { id: 'mycoffeeco-online', name: 'My Coffee Co. Online' }, sources: {},
-        revenue_paise: null, open_orders: null, low_stock: null, open_inquiries: null,
-        orders: [], inquiries: [], alerts: [],
-        data_notice: 'No live data connected yet. Shopify, Shiprocket and Supabase will be connected in the next phase.',
-      });
-      if (url.pathname === '/admin/alerts/read' && req.method === 'POST') return json(res, 200, { ok: true });
-      if (url.pathname === '/admin/auth/logout' && req.method === 'POST') {
-        store.audit(session.actor, 'preview_sign_out', 'manager_dashboard', null, null);
-        store.db.prepare('DELETE FROM sessions WHERE token_hash=?').run(tokenHash);
-        res.setHeader('Set-Cookie', 'mcc_preview=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0' + (secure ? '; Secure' : ''));
-        return json(res, 200, { ok: true });
-      }
-if (url.pathname === '/manager' && req.method === 'GET') {
-        const dashboard = read('admin.html').replace('<main>', '<main><p id="data-notice" role="status"></p>');
-        return html(res, 200, dashboard);
-      }
+const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
@@ -137,6 +106,35 @@ function createApp(config = {}) {
         res.writeHead(303, { Location: '/login' }); return res.end();
       }
       if (!['GET', 'HEAD'].includes(req.method) && req.headers['x-csrf-token'] !== session.csrf) return json(res, 403, { error: 'Refresh the preview and try again.' });
+      // Protected manager UI: intentionally presents no invented operational data until the
+      // separate Supabase/Shopify/Shiprocket connectors have been reviewed and enabled.
+      const managerAssets = {
+        '/admin/ui.js': ['admin-ui.js', 'text/javascript'],
+        '/admin/ui.css': ['admin-ui.css', 'text/css'],
+        '/admin/polish.css': ['admin-polish.css', 'text/css'],
+        '/admin/raleway.woff2': ['raleway.woff2', 'font/woff2'],
+        '/admin/logo.avif': ['logo.avif', 'image/avif'],
+      };
+      if (req.method === 'GET' && managerAssets[url.pathname]) {
+        const [file, type] = managerAssets[url.pathname]; res.writeHead(200, { 'Content-Type': type }); return res.end(read(file));
+      }
+      if (url.pathname === '/admin/auth/me' && req.method === 'GET') return json(res, 200, {
+        name: 'Manager preview', role: 'store_manager', store_id: 'mycoffeeco-online', csrf: session.csrf,
+        permissions: ['dashboard', 'orders', 'inventory', 'inquiries'],
+      });
+      if (url.pathname === '/admin/dashboard' && req.method === 'GET') return json(res, 200, {
+        store: { id: 'mycoffeeco-online', name: 'My Coffee Co. Online' }, sources: {},
+        revenue_paise: null, open_orders: null, low_stock: null, open_inquiries: null,
+        orders: [], inquiries: [], alerts: [],
+        data_notice: 'No live data connected yet. Shopify, Shiprocket and Supabase will be connected in the next phase.',
+      });
+      if (url.pathname === '/admin/alerts/read' && req.method === 'POST') return json(res, 200, { ok: true });
+      if (url.pathname === '/admin/auth/logout' && req.method === 'POST') {
+        store.audit(session.actor, 'preview_sign_out', 'manager_dashboard', null, null);
+        store.db.prepare('DELETE FROM sessions WHERE token_hash=?').run(tokenHash);
+        res.setHeader('Set-Cookie', `mcc_preview=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0${secure ? '; Secure' : ''}`);
+        return json(res, 200, { ok: true });
+      }
       if (url.pathname === '/api/logout' && req.method === 'POST') {
         store.audit(session.actor, 'preview_sign_out', 'session', null, null);
         store.db.prepare('DELETE FROM sessions WHERE token_hash=?').run(tokenHash);
@@ -154,7 +152,10 @@ function createApp(config = {}) {
         return json(res, 200, { sections: { main: { type: sourceFor(record.source).section, settings: record.settings } }, order: ['main'] });
       }
       if (url.pathname === '/' && req.method === 'GET') { res.writeHead(303, { Location: '/manager' }); return res.end(); }
-      if (url.pathname === '/manager' && req.method === 'GET') return html(res, 200, read('manager.html'));
+      if (url.pathname === '/manager' && req.method === 'GET') {
+        const dashboard = read('admin.html').replace('<main>', '<main><p id="data-notice" role="status"></p>');
+        return html(res, 200, dashboard);
+      }
       if (url.pathname === '/customer' && req.method === 'GET') return html(res, 200, read('customer.html'));
       if (url.pathname === '/customer.css' && req.method === 'GET') { res.writeHead(200, { 'Content-Type': 'text/css' }); return res.end(read('customer.css')); }
       if (url.pathname === '/customer.js' && req.method === 'GET') { res.writeHead(200, { 'Content-Type': 'text/javascript' }); return res.end(read('customer.js')); }
