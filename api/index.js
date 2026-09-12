@@ -36,16 +36,17 @@ async function runtime() {
 
 module.exports = async function handler(req, res) {
   try {
-    const { app } = await runtime();
-    // Vercel rewrites may expose the function prefix in req.url. Strip only
-    // that internal prefix so the existing route table sees /admin, /healthz,
-    // and the existing webhook paths.
+    // Bound startup so a bad/unreachable Supabase connection becomes a clear
+    // 503 before Vercel's function timeout is reached.
+    const { app } = await Promise.race([
+      runtime(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Manager startup timed out.')), 7000)),
+    ]);
     if (typeof req.url === 'string' && req.url.startsWith('/api')) {
       req.url = req.url.slice(4) || '/';
     }
     // Let the existing Node server write directly to Vercel's response.
-    // Vercel owns the response lifecycle, so do not wait for a Node
-    // finish event that may not be emitted by its adapter.
+    // Vercel owns the response lifecycle, so do not wait for a Node finish event.
     app.emit('request', req, res);
   } catch (error) {
     console.error('Manager serverless startup failed:', error?.code || error?.name || 'startup');
