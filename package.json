@@ -4,8 +4,9 @@
   "private": true,
   "description": "Isolated, access-controlled My Coffee Co dashboard preview. No production connectors.",
   "type": "commonjs",
-  "engines": {"node": ">=24.0.0 <25"},
+  "engines": { "node": ">=24.0.0 <25" },
   "scripts": {
+    "build": "node --check api/index.js && node build-customer-template.js --check",
     "start": "node manager-pg-server.js",
     "start:preview": "node server.js",
     "start:admin": "node admin-server.js",
@@ -15,8 +16,8 @@
     "mail:admin": "node admin-mail.js",
     "test:admin": "node --test admin.test.js",
     "build:customer": "node build-customer-template.js",
-    "test": "node build-customer-template.js --check && node --check customer.js && node --test test.js admin.test.js manager-pg.test.js manager-seed.test.js"
+    "test": "node build-customer-template.js --check && node --check customer.js && node --check api/index.js && node --test test.js admin.test.js manager-pg.test.js manager-seed.test.js"
   },
-  "dependencies": {"liquidjs": "10.29.0", "pg": "8.23.0"},
-  "devDependencies": {"@electric-sql/pglite": "0.5.8"}
+  "dependencies": { "@supabase/supabase-js": "^2.116.0", "liquidjs": "10.29.0", "pg": "8.23.0" },
+  "devDependencies": { "@electric-sql/pglite": "0.5.8" }
 }
