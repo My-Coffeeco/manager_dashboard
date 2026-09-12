@@ -1,18 +1,17 @@
 'use strict';
 
-// Vercel adapter for the existing Node HTTP application. The dashboard
-// application remains unchanged; this function only supplies the serverless
-// entrypoint Vercel requires.
-const { openPool, checkDatabase } = require('../manager-pg-db');
-const { createManagerApp } = require('../manager-pg-server');
-const { getSupabaseClient } = require('../lib/supabaseClient');
-
 let runtimePromise;
 
 async function runtime() {
   if (!runtimePromise) {
     runtimePromise = (async () => {
       const env = process.env;
+      // Keep application/database modules inside the guarded initialiser so a
+      // platform runtime mismatch becomes a controlled 503, not a Vercel
+      // FUNCTION_INVOCATION_FAILED before the handler can respond.
+      const { openPool, checkDatabase } = require('../manager-pg-db');
+      const { createManagerApp } = require('../manager-pg-server');
+      const { getSupabaseClient } = require('../lib/supabaseClient');
       // Initialise the server-side Supabase client when API credentials are
       // configured. The manager's primary data path remains the restricted
       // PostgreSQL role, so a missing optional API key must not crash startup.
@@ -41,7 +40,12 @@ module.exports = async function handler(req, res) {
     if (typeof req.url === 'string' && req.url.startsWith('/api')) {
       req.url = req.url.slice(4) || '/';
     }
-    app.emit('request', req, res);
+    // Keep the serverless invocation open until the existing Node server has
+    // sent its response.
+    await new Promise((resolve) => {
+      res.once('finish', resolve);
+      app.emit('request', req, res);
+    });
   } catch (error) {
     console.error('Manager serverless startup failed:', error?.code || error?.name || 'startup');
     if (!res.headersSent) {
