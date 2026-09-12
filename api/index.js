@@ -1,5 +1,8 @@
 'use strict';
 
+// Vercel adapter for the existing Node HTTP application. The dashboard
+// application remains unchanged; this function only supplies the serverless
+// entrypoint Vercel requires.
 let runtimePromise;
 
 async function runtime() {
@@ -40,12 +43,10 @@ module.exports = async function handler(req, res) {
     if (typeof req.url === 'string' && req.url.startsWith('/api')) {
       req.url = req.url.slice(4) || '/';
     }
-    // Keep the serverless invocation open until the existing Node server has
-    // sent its response.
-    await new Promise((resolve) => {
-      res.once('finish', resolve);
-      app.emit('request', req, res);
-    });
+    // Let the existing Node server write directly to Vercel's response.
+    // Vercel owns the response lifecycle, so do not wait for a Node
+    // finish event that may not be emitted by its adapter.
+    app.emit('request', req, res);
   } catch (error) {
     console.error('Manager serverless startup failed:', error?.code || error?.name || 'startup');
     if (!res.headersSent) {
