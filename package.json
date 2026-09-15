@@ -4,7 +4,7 @@
   "private": true,
   "description": "Isolated, access-controlled My Coffee Co dashboard preview. No production connectors.",
   "type": "commonjs",
-  "engines": { "node": ">=24.0.0 <25" },
+  "engines": { "node": ">=20.0.0" },
   "scripts": {
     "build": "node --check api/index.js && node build-customer-template.js --check",
     "start": "node manager-pg-server.js",

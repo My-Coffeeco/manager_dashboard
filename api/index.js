@@ -5,33 +5,39 @@
 // entrypoint Vercel requires.
 let runtimePromise;
 
+async function initRuntime() {
+  const env = process.env;
+  const { openPool, checkDatabase } = require('../manager-pg-db');
+  const { createManagerApp } = require('../manager-pg-server');
+  const { seedManager, provisionDatabaseRole } = require('../manager-pg-setup');
+  const { getSupabaseClient } = require('../lib/supabaseClient');
+  if (env.NEXT_PUBLIC_SUPABASE_URL && (env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SECRET_KEY)) {
+    getSupabaseClient(env);
+  }
+  await provisionDatabaseRole(env);
+  let pool;
+  try {
+    pool = openPool(env);
+    await checkDatabase(pool);
+    if (env.MANAGER_BOOTSTRAP === '1') {
+      await seedManager(pool, env.MANAGER_INITIAL_PASSWORD);
+    }
+    await checkDatabase(pool, { requireManager: true });
+    return { app: createManagerApp({ pool, env }), pool };
+  } catch (error) {
+    if (pool) {
+      await pool.end().catch(() => {});
+    }
+    throw error;
+  }
+}
+
 async function runtime() {
   if (!runtimePromise) {
-    runtimePromise = (async () => {
-      const env = process.env;
-      const { openPool, checkDatabase } = require('../manager-pg-db');
-      const { createManagerApp } = require('../manager-pg-server');
-      const { seedManager, provisionDatabaseRole } = require('../manager-pg-setup');
-      const { getSupabaseClient } = require('../lib/supabaseClient');
-      if (env.NEXT_PUBLIC_SUPABASE_URL && (env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SECRET_KEY)) {
-        getSupabaseClient(env);
-      }
-      // Support the existing one-time setup flags on Vercel. Remove the owner
-      // and bootstrap variables immediately after the first successful deploy.
-      await provisionDatabaseRole(env);
-      const pool = openPool(env);
-      try {
-        await checkDatabase(pool);
-        if (env.MANAGER_BOOTSTRAP === '1') {
-          await seedManager(pool, env.MANAGER_INITIAL_PASSWORD);
-        }
-        await checkDatabase(pool, { requireManager: true });
-        return { app: createManagerApp({ pool, env }), pool };
-      } catch (error) {
-        await pool.end();
-        throw error;
-      }
-    })();
+    runtimePromise = initRuntime().catch((error) => {
+      runtimePromise = null;
+      throw error;
+    });
   }
   return runtimePromise;
 }
@@ -47,11 +53,14 @@ module.exports = async function handler(req, res) {
     }
     app.emit('request', req, res);
   } catch (error) {
-    console.error('Manager serverless startup failed:', error?.code || error?.name || 'startup');
+    console.error('Manager serverless startup failed:', error?.message || error?.code || error?.name || 'startup');
     if (!res.headersSent) {
       res.statusCode = 503;
       res.setHeader('Content-Type', 'application/json; charset=utf-8');
-      res.end(JSON.stringify({ error: 'Manager service temporarily unavailable.' }));
+      res.end(JSON.stringify({
+        error: 'Manager service temporarily unavailable.',
+        message: error?.message || 'Serverless startup failed'
+      }));
     }
   }
 };

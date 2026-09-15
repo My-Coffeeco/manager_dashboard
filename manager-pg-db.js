@@ -3,6 +3,7 @@ const { Pool } = require('pg');
 const fs = require('node:fs');
 
 function connectionOptions(env = process.env, key = 'MANAGER_DATABASE_URL', owner = false) {
+  if (!env[key]) throw Error(`${key} environment variable is missing.`);
   let url;
   try { url = new URL(env[key]); } catch { throw Error(`${key} must be a PostgreSQL connection URI.`); }
   if (!['postgres:', 'postgresql:'].includes(url.protocol) || !url.hostname ||
