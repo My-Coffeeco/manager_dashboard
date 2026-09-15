@@ -9,20 +9,22 @@ async function runtime() {
   if (!runtimePromise) {
     runtimePromise = (async () => {
       const env = process.env;
-      // Keep application/database modules inside the guarded initialiser so a
-      // platform runtime mismatch becomes a controlled 503, not a Vercel
-      // FUNCTION_INVOCATION_FAILED before the handler can respond.
       const { openPool, checkDatabase } = require('../manager-pg-db');
       const { createManagerApp } = require('../manager-pg-server');
+      const { seedManager, provisionDatabaseRole } = require('../manager-pg-setup');
       const { getSupabaseClient } = require('../lib/supabaseClient');
-      // Initialise the server-side Supabase client when API credentials are
-      // configured. The manager's primary data path remains the restricted
-      // PostgreSQL role, so a missing optional API key must not crash startup.
       if (env.NEXT_PUBLIC_SUPABASE_URL && (env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SECRET_KEY)) {
         getSupabaseClient(env);
       }
+      // Support the existing one-time setup flags on Vercel. Remove the owner
+      // and bootstrap variables immediately after the first successful deploy.
+      await provisionDatabaseRole(env);
       const pool = openPool(env);
       try {
+        await checkDatabase(pool);
+        if (env.MANAGER_BOOTSTRAP === '1') {
+          await seedManager(pool, env.MANAGER_INITIAL_PASSWORD);
+        }
         await checkDatabase(pool, { requireManager: true });
         return { app: createManagerApp({ pool, env }), pool };
       } catch (error) {
@@ -36,8 +38,6 @@ async function runtime() {
 
 module.exports = async function handler(req, res) {
   try {
-    // Bound startup so a bad/unreachable Supabase connection becomes a clear
-    // 503 before Vercel's function timeout is reached.
     const { app } = await Promise.race([
       runtime(),
       new Promise((_, reject) => setTimeout(() => reject(new Error('Manager startup timed out.')), 7000)),
@@ -45,8 +45,6 @@ module.exports = async function handler(req, res) {
     if (typeof req.url === 'string' && req.url.startsWith('/api')) {
       req.url = req.url.slice(4) || '/';
     }
-    // Let the existing Node server write directly to Vercel's response.
-    // Vercel owns the response lifecycle, so do not wait for a Node finish event.
     app.emit('request', req, res);
   } catch (error) {
     console.error('Manager serverless startup failed:', error?.code || error?.name || 'startup');
