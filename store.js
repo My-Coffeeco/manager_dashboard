@@ -1,7 +1,7 @@
-const { DatabaseSync } = require('node:sqlite');
 const { randomUUID } = require('node:crypto');
 
 function createStore(filename, sources) {
+  const { DatabaseSync } = require('node:sqlite');
   const db = new DatabaseSync(filename);
   db.exec(`PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;
     CREATE TABLE IF NOT EXISTS pages (id TEXT PRIMARY KEY, slug TEXT UNIQUE, title TEXT, source TEXT, status TEXT, settings TEXT, version INTEGER, updated TEXT);

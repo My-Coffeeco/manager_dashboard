@@ -1,4 +1,3 @@
-const { DatabaseSync } = require('node:sqlite');
 const crypto = require('node:crypto');
 const { promisify } = require('node:util');
 const scrypt = promisify(crypto.scrypt);
@@ -14,6 +13,7 @@ async function verify(password, encoded) {
   return crypto.timingSafeEqual(key, Buffer.from(value, 'hex'));
 }
 function openDatabase(filename) {
+  const { DatabaseSync } = require('node:sqlite');
   const db = new DatabaseSync(filename);
   db.exec(`PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;
     CREATE TABLE IF NOT EXISTS stores(id TEXT PRIMARY KEY,name TEXT NOT NULL);
