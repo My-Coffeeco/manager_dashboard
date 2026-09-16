@@ -18,7 +18,7 @@ function connectionOptions(env = process.env, key = 'MANAGER_DATABASE_URL', owne
   }
   const port = Number(url.port || 5432);
   if (port !== 5432) throw Error('Use the Session pooler on port 5432.');
-  const ssl = { rejectUnauthorized: true };
+  const ssl = { rejectUnauthorized: env.MANAGER_DATABASE_SSL_REJECT_UNAUTHORIZED === '0' ? false : true };
   if (env.MANAGER_DATABASE_CA_FILE) ssl.ca = fs.readFileSync(env.MANAGER_DATABASE_CA_FILE, 'utf8');
   return {
     host: url.hostname, port, database: 'postgres', user,

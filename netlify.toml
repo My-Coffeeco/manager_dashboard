@@ -1,0 +1,14 @@
+# Netlify Deployment Configuration for My Coffee Co Dashboard
+
+[build]
+  command = "npm run build"
+  functions = "netlify/functions"
+  publish = "."
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/api"
+  status = 200
