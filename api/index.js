@@ -46,7 +46,7 @@ module.exports = async function handler(req, res) {
   try {
     const { app } = await Promise.race([
       runtime(),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('Manager startup timed out.')), 7000)),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Manager startup timed out.')), 15000)),
     ]);
     if (typeof req.url === 'string' && req.url.startsWith('/api')) {
       req.url = req.url.slice(4) || '/';

@@ -1,5 +1,11 @@
 {
   "version": 2,
+  "functions": {
+    "api/index.js": {
+      "includeFiles": "admin.html,admin-ui.js,admin-ui.css,admin-polish.css,logo.avif,raleway.woff2,manager-schema.sql,sources.json",
+      "maxDuration": 15
+    }
+  },
   "rewrites": [
     { "source": "/(.*)", "destination": "/api" }
   ]
