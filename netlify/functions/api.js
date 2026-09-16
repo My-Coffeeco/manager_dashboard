@@ -57,6 +57,8 @@ exports.handler = async function (event, context) {
 
   res.end = (chunk) => {
     if (chunk) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    res.emit('finish');
+    res.emit('close');
   };
 
   await handler(req, res);
