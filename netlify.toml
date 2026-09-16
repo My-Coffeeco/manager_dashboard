@@ -11,6 +11,33 @@
 [functions]
   included_files = ["*.html", "*.css", "*.js", "*.woff2", "*.avif", "*.sql", "*.json"]
 
+# Serve static frontend assets directly from Netlify CDN
+[[redirects]]
+  from = "/admin/ui.css"
+  to = "/admin-ui.css"
+  status = 200
+
+[[redirects]]
+  from = "/admin/polish.css"
+  to = "/admin-polish.css"
+  status = 200
+
+[[redirects]]
+  from = "/admin/ui.js"
+  to = "/admin-ui.js"
+  status = 200
+
+[[redirects]]
+  from = "/admin/logo.avif"
+  to = "/logo.avif"
+  status = 200
+
+[[redirects]]
+  from = "/admin/raleway.woff2"
+  to = "/raleway.woff2"
+  status = 200
+
+# Serverless function API routes
 [[redirects]]
   from = "/*"
   to = "/.netlify/functions/api"

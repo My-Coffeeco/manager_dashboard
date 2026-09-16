@@ -7,6 +7,11 @@
     }
   },
   "rewrites": [
+    { "source": "/admin/ui.css", "destination": "/admin-ui.css" },
+    { "source": "/admin/polish.css", "destination": "/admin-polish.css" },
+    { "source": "/admin/ui.js", "destination": "/admin-ui.js" },
+    { "source": "/admin/logo.avif", "destination": "/logo.avif" },
+    { "source": "/admin/raleway.woff2", "destination": "/raleway.woff2" },
     { "source": "/(.*)", "destination": "/api" }
   ]
 }
