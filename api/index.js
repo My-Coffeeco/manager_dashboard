@@ -51,7 +51,12 @@ module.exports = async function handler(req, res) {
     if (typeof req.url === 'string' && req.url.startsWith('/api')) {
       req.url = req.url.slice(4) || '/';
     }
-    app.emit('request', req, res);
+    await new Promise((resolve, reject) => {
+      res.on('finish', resolve);
+      res.on('close', resolve);
+      res.on('error', reject);
+      app.emit('request', req, res);
+    });
   } catch (error) {
     console.error('Manager serverless startup failed:', error?.message || error?.code || error?.name || 'startup');
     if (!res.headersSent) {
