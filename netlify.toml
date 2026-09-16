@@ -8,6 +8,9 @@
 [build.environment]
   NODE_VERSION = "20"
 
+[functions]
+  included_files = ["*.html", "*.css", "*.js", "*.woff2", "*.avif", "*.sql", "*.json"]
+
 [[redirects]]
   from = "/*"
   to = "/.netlify/functions/api"
