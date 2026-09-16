@@ -22,9 +22,11 @@ const assets = {
   '/admin/logo.avif': ['logo.avif', 'image/avif'],
 };
 function originFor(env) {
+  const originStr = env.ADMIN_ORIGIN || (env.VERCEL_URL ? `https://${env.VERCEL_URL}` : env.URL || '');
+  if (!originStr) throw Error('ADMIN_ORIGIN environment variable is missing.');
   let url;
-  try { url = new URL(env.ADMIN_ORIGIN); } catch { throw Error('ADMIN_ORIGIN is required.'); }
-  if (url.origin !== env.ADMIN_ORIGIN || (url.protocol !== 'https:' &&
+  try { url = new URL(originStr); } catch { throw Error('ADMIN_ORIGIN is required.'); }
+  if (url.origin !== originStr || (url.protocol !== 'https:' &&
       !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(url.origin))) {
     throw Error('Use an exact HTTPS ADMIN_ORIGIN without a path or trailing slash.');
   }
