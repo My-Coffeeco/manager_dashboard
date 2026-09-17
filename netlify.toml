@@ -14,37 +14,37 @@
 # Serverless function API routes
 [[redirects]]
   from = "/admin/auth/*"
-  to = "/.netlify/functions/server/admin/auth/:splat"
+  to = "/.netlify/functions/api"
   status = 200
 
 [[redirects]]
   from = "/admin/dashboard"
-  to = "/.netlify/functions/server/admin/dashboard"
+  to = "/.netlify/functions/api"
   status = 200
 
 [[redirects]]
   from = "/admin/orders/*"
-  to = "/.netlify/functions/server/admin/orders/:splat"
+  to = "/.netlify/functions/api"
   status = 200
 
 [[redirects]]
   from = "/admin/alerts/*"
-  to = "/.netlify/functions/server/admin/alerts/:splat"
+  to = "/.netlify/functions/api"
   status = 200
 
 [[redirects]]
   from = "/admin/stores"
-  to = "/.netlify/functions/server/admin/stores"
+  to = "/.netlify/functions/api"
   status = 200
 
 [[redirects]]
   from = "/webhooks/*"
-  to = "/.netlify/functions/server/webhooks/:splat"
+  to = "/.netlify/functions/api"
   status = 200
 
 [[redirects]]
   from = "/healthz"
-  to = "/.netlify/functions/server/healthz"
+  to = "/.netlify/functions/api"
   status = 200
 
 # SPA fallback to React index.html
