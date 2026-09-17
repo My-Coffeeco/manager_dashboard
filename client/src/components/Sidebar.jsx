@@ -17,7 +17,7 @@ export function Sidebar({ currentView, setCurrentView, mobileOpen, setMobileOpen
   return (
     <aside className={`rail ${mobileOpen ? 'open' : ''}`}>
       <a className="brand" href="/admin">
-        <img src="/logo.avif" alt="My Coffee Co." />
+        <img src="/new_logo.jpeg" alt="My Coffee Co." />
       </a>
       
       <p className="rail-label">WORKSPACE</p>

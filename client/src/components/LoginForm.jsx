@@ -29,7 +29,7 @@ export function LoginForm({ onLoginSuccess, message, setMessage }) {
     <div className="login-wrapper">
       <div className="login-card">
         <header>
-          <img src="/logo.avif" alt="My Coffee Co." />
+          <img src="/new_logo.jpeg" alt="My Coffee Co." />
           <h1>Manager sign in</h1>
         </header>
 
