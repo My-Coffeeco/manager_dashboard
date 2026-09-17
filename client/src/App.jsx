@@ -23,16 +23,23 @@ export function App() {
   const fetchAuth = useCallback(async () => {
     try {
       const r = await fetch('/admin/auth/me');
-      if (r.status === 401) {
+      if (!r.ok || r.status !== 200) {
         setUser(null);
+        setDashboardData(null);
         return false;
       }
       const data = await r.json();
+      if (!data || data.error || !data.id) {
+        setUser(null);
+        setDashboardData(null);
+        return false;
+      }
       setUser(data);
       setStoreId(data.store_id || 'mycoffeeco-online');
       return true;
     } catch {
       setUser(null);
+      setDashboardData(null);
       return false;
     } finally {
       setLoading(false);
@@ -58,12 +65,20 @@ export function App() {
     if (!storeId) return;
     try {
       const r = await fetch(`/admin/dashboard?store_id=${encodeURIComponent(storeId)}`);
-      if (r.status === 401) {
+      if (r.status === 401 || r.status === 403) {
         setUser(null);
+        setDashboardData(null);
         return;
       }
       const data = await r.json();
-      if (!r.ok) throw new Error(data.error || 'Failed to fetch dashboard data');
+      if (!r.ok || data.error) {
+        if (r.status === 401) {
+          setUser(null);
+          setDashboardData(null);
+          return;
+        }
+        throw new Error(data.error || 'Failed to fetch dashboard data');
+      }
       setDashboardData(data);
     } catch (err) {
       setMessage(err.message);
