@@ -1,6 +1,6 @@
 import React from 'react';
 
-export function AlertsList({ alerts, onMarkRead, setMessage }) {
+export function AlertsList({ alerts, onMarkRead, setMessage, csrf }) {
   if (!alerts) {
     return <p className="quiet">Your role does not have access.</p>;
   }
@@ -13,7 +13,10 @@ export function AlertsList({ alerts, onMarkRead, setMessage }) {
     try {
       const r = await fetch('/admin/alerts/read', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrf || ''
+        },
         body: JSON.stringify({ id })
       });
       const data = await r.json();

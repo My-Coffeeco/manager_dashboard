@@ -1,5 +1,7 @@
 {
   "version": 2,
+  "buildCommand": "npm run build",
+  "outputDirectory": "client/dist",
   "functions": {
     "api/index.js": {
       "includeFiles": "*.{html,css,js,woff2,avif,sql,json},client/dist/**",
@@ -7,11 +9,15 @@
     }
   },
   "rewrites": [
-    { "source": "/admin/ui.css", "destination": "/admin-ui.css" },
-    { "source": "/admin/polish.css", "destination": "/admin-polish.css" },
-    { "source": "/admin/ui.js", "destination": "/admin-ui.js" },
-    { "source": "/admin/logo.avif", "destination": "/logo.avif" },
-    { "source": "/admin/raleway.woff2", "destination": "/raleway.woff2" },
-    { "source": "/(.*)", "destination": "/api" }
+    { "source": "/admin/auth/(.*)", "destination": "/api" },
+    { "source": "/admin/dashboard", "destination": "/api" },
+    { "source": "/admin/orders/(.*)", "destination": "/api" },
+    { "source": "/admin/alerts/(.*)", "destination": "/api" },
+    { "source": "/admin/stores", "destination": "/api" },
+    { "source": "/webhooks/(.*)", "destination": "/api" },
+    { "source": "/healthz", "destination": "/api" },
+    { "source": "/admin", "destination": "/index.html" },
+    { "source": "/admin/(.*)", "destination": "/index.html" },
+    { "source": "/manager", "destination": "/index.html" }
   ]
 }

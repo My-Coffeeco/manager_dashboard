@@ -3,7 +3,7 @@
 [build]
   command = "npm run build"
   functions = "netlify/functions"
-  publish = "."
+  publish = "client/dist"
 
 [build.environment]
   NODE_VERSION = "20"
@@ -11,34 +11,54 @@
 [functions]
   included_files = ["*.html", "*.css", "*.js", "*.woff2", "*.avif", "*.sql", "*.json", "client/dist/**"]
 
-# Serve static frontend assets directly from Netlify CDN
-[[redirects]]
-  from = "/admin/ui.css"
-  to = "/admin-ui.css"
-  status = 200
-
-[[redirects]]
-  from = "/admin/polish.css"
-  to = "/admin-polish.css"
-  status = 200
-
-[[redirects]]
-  from = "/admin/ui.js"
-  to = "/admin-ui.js"
-  status = 200
-
-[[redirects]]
-  from = "/admin/logo.avif"
-  to = "/logo.avif"
-  status = 200
-
-[[redirects]]
-  from = "/admin/raleway.woff2"
-  to = "/raleway.woff2"
-  status = 200
-
 # Serverless function API routes
 [[redirects]]
+  from = "/admin/auth/*"
+  to = "/.netlify/functions/server/admin/auth/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/admin/dashboard"
+  to = "/.netlify/functions/server/admin/dashboard"
+  status = 200
+
+[[redirects]]
+  from = "/admin/orders/*"
+  to = "/.netlify/functions/server/admin/orders/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/admin/alerts/*"
+  to = "/.netlify/functions/server/admin/alerts/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/admin/stores"
+  to = "/.netlify/functions/server/admin/stores"
+  status = 200
+
+[[redirects]]
+  from = "/webhooks/*"
+  to = "/.netlify/functions/server/webhooks/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/healthz"
+  to = "/.netlify/functions/server/healthz"
+  status = 200
+
+# SPA fallback to React index.html
+[[redirects]]
+  from = "/admin/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/admin"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
   from = "/*"
-  to = "/.netlify/functions/api"
+  to = "/index.html"
   status = 200

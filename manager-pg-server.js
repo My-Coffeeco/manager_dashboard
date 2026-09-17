@@ -22,7 +22,7 @@ const assets = {
   '/admin/logo.avif': ['logo.avif', 'image/avif'],
 };
 function originFor(env) {
-  const originStr = env.ADMIN_ORIGIN || (env.VERCEL_URL ? `https://${env.VERCEL_URL}` : env.URL || '');
+  const originStr = env.ADMIN_ORIGIN || (env.VERCEL_URL ? `https://${env.VERCEL_URL}` : env.URL || 'http://localhost:3113');
   if (!originStr) throw Error('ADMIN_ORIGIN environment variable is missing.');
   let url;
   try { url = new URL(originStr); } catch { throw Error('ADMIN_ORIGIN is required.'); }
@@ -31,6 +31,12 @@ function originFor(env) {
     throw Error('Use an exact HTTPS ADMIN_ORIGIN without a path or trailing slash.');
   }
   return url.origin;
+}
+function isValidOrigin(reqOrigin, configuredOrigin) {
+  if (!reqOrigin) return true;
+  if (reqOrigin === configuredOrigin) return true;
+  if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(reqOrigin)) return true;
+  return false;
 }
 async function readInput(req) {
   if (!/^application\/json(?:\s*;|$)/i.test(req.headers['content-type'] || '')) fail(415, 'JSON required.');
@@ -260,8 +266,10 @@ function createManagerApp({ pool, env = process.env }) {
       if (p.startsWith('/admin/invite') || ['/admin/stores','/admin/audit'].includes(p)) fail(404, 'Not found.');
       if (method === 'GET' && ['/admin','/admin/login'].includes(p)) {
         const clientIndex = path.join(__dirname, 'client', 'dist', 'index.html');
-        if (fs.existsSync(clientIndex)) {
-          const html = fs.readFileSync(clientIndex, 'utf8');
+        const rootIndex = path.join(__dirname, '..', 'client', 'dist', 'index.html');
+        const indexPath = fs.existsSync(clientIndex) ? clientIndex : (fs.existsSync(rootIndex) ? rootIndex : null);
+        if (indexPath) {
+          const html = fs.readFileSync(indexPath, 'utf8');
           res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
           return res.end(html);
         }
@@ -271,11 +279,13 @@ function createManagerApp({ pool, env = process.env }) {
       }
       if (method === 'GET' && p.startsWith('/assets/')) {
         const assetPath = path.join(__dirname, 'client', 'dist', p);
-        if (fs.existsSync(assetPath)) {
-          const ext = path.extname(assetPath);
+        const rootAssetPath = path.join(__dirname, '..', 'client', 'dist', p);
+        const targetPath = fs.existsSync(assetPath) ? assetPath : (fs.existsSync(rootAssetPath) ? rootAssetPath : null);
+        if (targetPath) {
+          const ext = path.extname(targetPath);
           const mime = { '.js': 'application/javascript', '.css': 'text/css', '.avif': 'image/avif', '.svg': 'image/svg+xml' }[ext] || 'application/octet-stream';
           res.writeHead(200, { 'Content-Type': mime });
-          return res.end(fs.readFileSync(assetPath));
+          return res.end(fs.readFileSync(targetPath));
         }
       }
       if (method === 'GET' && assets[p]) {
@@ -283,9 +293,11 @@ function createManagerApp({ pool, env = process.env }) {
       }
       if (p === '/webhooks/shopify/orders' && method === 'POST') {
         const raw = await readRaw(req);
-        if (!validShopifyHmac(raw, req.headers['x-shopify-hmac-sha256'], env.SHOPIFY_CLIENT_SECRET)) fail(401, 'Invalid Shopify webhook signature.');
+        const secret = env.SHOPIFY_WEBHOOK_SECRET || env.SHOPIFY_CLIENT_SECRET;
+        if (!validShopifyHmac(raw, req.headers['x-shopify-hmac-sha256'], secret)) fail(401, 'Invalid Shopify webhook signature.');
         const shop = String(req.headers['x-shopify-shop-domain'] || '').toLowerCase();
-        if (!env.SHOPIFY_SHOP_DOMAIN || shop !== env.SHOPIFY_SHOP_DOMAIN.toLowerCase()) fail(403, 'Unexpected Shopify store.');
+        const expectedShop = String(env.SHOPIFY_STORE || env.SHOPIFY_SHOP_DOMAIN || '').toLowerCase();
+        if (!expectedShop || shop !== expectedShop) fail(403, 'Unexpected Shopify store.');
         let payload; try { payload = JSON.parse(raw.toString('utf8')); } catch { fail(400, 'Invalid Shopify webhook JSON.'); }
         if (!payload || typeof payload !== 'object' || Array.isArray(payload)) fail(400, 'Invalid Shopify webhook payload.');
         const result = await acceptEvent(pool, shopifyOrderEvent(payload, req.headers));
@@ -297,7 +309,7 @@ function createManagerApp({ pool, env = process.env }) {
           if (!env.ADMIN_EVENT_SECRET || env.ADMIN_EVENT_SECRET.length < 32 ||
               !digestEqual(req.headers.authorization || '', 'Bearer ' + env.ADMIN_EVENT_SECRET)) fail(401, 'Invalid event credentials.');
           // An internal adapter endpoint, NOT a Shopify/Shiprocket webhook URL.
-        } else if (req.headers.origin !== origin) fail(403, 'Invalid origin.');
+        } else if (!isValidOrigin(req.headers.origin, origin)) fail(403, 'Invalid origin.');
         input = await readInput(req);
       }
       if (p === '/admin/events' && method === 'POST') return json(200, await acceptEvent(pool, input));

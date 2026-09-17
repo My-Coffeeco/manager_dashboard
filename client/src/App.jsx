@@ -85,7 +85,14 @@ export function App() {
 
   const handleLogout = async () => {
     try {
-      await fetch('/admin/auth/logout', { method: 'POST' });
+      await fetch('/admin/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': user?.csrf || ''
+        },
+        body: '{}'
+      });
     } finally {
       setUser(null);
       setDashboardData(null);
@@ -216,6 +223,7 @@ export function App() {
                 alerts={dashboardData?.alerts}
                 onMarkRead={refreshDashboard}
                 setMessage={setMessage}
+                csrf={user?.csrf}
               />
             </section>
           )}
@@ -227,6 +235,7 @@ export function App() {
         onClose={() => setSelectedOrder(null)}
         onStatusUpdated={refreshDashboard}
         setMessage={setMessage}
+        csrf={user?.csrf}
       />
     </div>
   );

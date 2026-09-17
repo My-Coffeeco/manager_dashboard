@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, CheckCircle } from 'lucide-react';
 
-export function OrderDetailModal({ order, onClose, onStatusUpdated, setMessage }) {
+export function OrderDetailModal({ order, onClose, onStatusUpdated, setMessage, csrf }) {
   if (!order) return null;
 
   const [status, setStatus] = useState(order.status || 'paid');
@@ -16,7 +16,10 @@ export function OrderDetailModal({ order, onClose, onStatusUpdated, setMessage }
     try {
       const r = await fetch('/admin/orders/status', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrf || ''
+        },
         body: JSON.stringify({ id: order.id, status })
       });
       const data = await r.json();
