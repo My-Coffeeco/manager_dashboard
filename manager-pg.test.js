@@ -120,6 +120,11 @@ test('manager-only schema, private role, real PostgreSQL routes, restart persist
     const d=(await call('/admin/dashboard?store_id=someone-else',undefined,auth)).data;
     assert.equal(d.store.id,'mycoffeeco-online'); assert.equal(d.revenue_paise,28500);
     assert.equal(d.alerts.length,1); assert.equal(d.orders[0].status,'paid');
+    assert.equal((await call('/admin/orders/status',{id:'#1067',status:'shipped'},auth)).status,200);
+    const updatedOrder = (await call('/admin/dashboard',undefined,auth)).data.orders.find(o=>o.id==='#1067');
+    assert.equal(updatedOrder.status,'shipped');
+    assert.equal((await call('/admin/orders/status',{id:'#1067',status:'invalid_status'},auth)).status,400);
+    assert.equal((await call('/admin/orders/status',{id:'non_existent_id',status:'shipped'},auth)).status,404);
     assert.equal((await call('/admin/alerts/read',{id:d.alerts[0].id},auth)).status,200);
     assert.equal((await call('/admin/alerts/read',{id:999999},auth)).status,404);
     assert.equal((await call('/admin/dashboard',undefined,auth)).data.alerts.length,0);

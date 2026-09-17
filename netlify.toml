@@ -9,7 +9,7 @@
   NODE_VERSION = "20"
 
 [functions]
-  included_files = ["*.html", "*.css", "*.js", "*.woff2", "*.avif", "*.sql", "*.json"]
+  included_files = ["*.html", "*.css", "*.js", "*.woff2", "*.avif", "*.sql", "*.json", "client/dist/**"]
 
 # Serve static frontend assets directly from Netlify CDN
 [[redirects]]

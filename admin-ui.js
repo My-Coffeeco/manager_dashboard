@@ -115,24 +115,67 @@
       target.append(node('p', 'Your role does not have order access.'));
       return;
     }
+    if (!lastOrders.length) {
+      target.append(node('p', 'No orders received yet.'));
+      return;
+    }
     const search = ($('order-search')?.value || '').toLowerCase();
     const status = $('order-filter')?.value || 'all';
-    const rows = lastOrders.filter(o => !['delivered', 'cancelled'].includes(o.status) && (status === 'all' || o.status === status) && ((o.id || '') + ' ' + (o.customer || '')).toLowerCase().includes(search));
+    const rows = lastOrders.filter(o => (status === 'all' || o.status === status) && ((o.id || '') + ' ' + (o.customer || '')).toLowerCase().includes(search));
     if (!rows.length) target.append(node('p', 'No orders match this view.'));
     for (const o of rows) {
       const r = node('div', null, 'row'), info = node('div'), b = node('button', 'View →', 'detail-button');
       info.append(node('strong', o.id), node('p', o.customer));
       b.onclick = () => {
         const content = $('detail-content');
-        content.replaceChildren(...[
+        const details = [
           ['Order', o.id],
           ['Customer', o.customer],
           ['Status', (o.status || '').replaceAll('_', ' ')],
           ['Total', new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(o.amount_paise / 100)]
-        ].map(([k, v]) => node('p', k + ': ' + v)));
+        ].map(([k, v]) => node('p', k + ': ' + v));
+
+        const formEl = node('form');
+        formEl.style.marginTop = '16px';
+        const labelEl = node('label', 'Change status');
+        const sel = node('select');
+        sel.name = 'status';
+        [
+          ['paid', 'Awaiting pack'],
+          ['payment_pending', 'Payment pending'],
+          ['shipped', 'In transit / Shipped'],
+          ['delivered', 'Delivered'],
+          ['cancelled', 'Cancelled']
+        ].forEach(([st, lbl]) => {
+          const opt = node('option', lbl);
+          opt.value = st;
+          if (st === o.status) opt.selected = true;
+          sel.append(opt);
+        });
+        labelEl.append(sel);
+        const subBtn = node('button', 'Update status');
+        subBtn.style.marginTop = '10px';
+        formEl.append(labelEl, subBtn);
+
+        formEl.onsubmit = async evt => {
+          evt.preventDefault();
+          subBtn.disabled = true;
+          try {
+            const res = await api('/admin/orders/status', { id: o.id, status: sel.value });
+            message('Order ' + o.id + ' status updated to ' + sel.value + (res.shopify_synced ? ' (Synced with Shopify)' : ''));
+            $('order-detail')?.close();
+            await refresh();
+          } catch (err) {
+            message(err);
+          } finally {
+            subBtn.disabled = false;
+          }
+        };
+
+        content.replaceChildren(...details, formEl);
         $('order-detail')?.showModal();
       };
-      r.append(info, node('span', ({ paid: 'Awaiting pack', payment_pending: 'Payment pending', shipped: 'In transit' })[o.status] || o.status, 'badge'), b);
+      r.append(info, node('span', ({ paid: 'Awaiting pack', payment_pending: 'Payment pending', shipped: 'In transit', delivered: 'Delivered', cancelled: 'Cancelled' })[o.status] || (o.status || '').replaceAll('_', ' '), 'badge'), b);
       target.append(r);
     }
   }

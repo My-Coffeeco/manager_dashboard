@@ -2,7 +2,7 @@
   "version": 2,
   "functions": {
     "api/index.js": {
-      "includeFiles": "*.{html,css,js,woff2,avif,sql,json}",
+      "includeFiles": "*.{html,css,js,woff2,avif,sql,json},client/dist/**",
       "maxDuration": 15
     }
   },

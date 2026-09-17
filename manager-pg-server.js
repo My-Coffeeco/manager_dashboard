@@ -194,6 +194,51 @@ async function dashboard(pool, session, permissions) {
   };
 }
 
+async function syncShopifyOrderStatus(env, orderId, status) {
+  const token = env.SHOPIFY_ACCESS_TOKEN;
+  const store = env.SHOPIFY_STORE || env.SHOPIFY_SHOP_DOMAIN;
+  if (!token || token.startsWith('YOUR_') || !store) {
+    return { synced: false, reason: 'unconfigured' };
+  }
+  const domain = store.includes('.') ? store : `${store}.myshopify.com`;
+  const cleanId = String(orderId).replace(/^#/, '').trim();
+  try {
+    if (/^\d+$/.test(cleanId)) {
+      if (status === 'shipped' || status === 'delivered') {
+        const url = `https://${domain}/admin/api/2024-01/orders/${cleanId}/fulfillments.json`;
+        const body = JSON.stringify({
+          fulfillment: {
+            notify_customer: true,
+            status: status === 'delivered' ? 'success' : 'open'
+          }
+        });
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'X-Shopify-Access-Token': token,
+            'Content-Type': 'application/json'
+          },
+          body
+        });
+        if (res.ok) return { synced: true };
+      } else if (status === 'cancelled') {
+        const url = `https://${domain}/admin/api/2024-01/orders/${cleanId}/cancel.json`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'X-Shopify-Access-Token': token,
+            'Content-Type': 'application/json'
+          }
+        });
+        if (res.ok) return { synced: true };
+      }
+    }
+    return { synced: false, reason: 'shopify_api_response' };
+  } catch (err) {
+    return { synced: false, reason: err.message };
+  }
+}
+
 function createManagerApp({ pool, env = process.env }) {
   const origin = originFor(env), secure = origin.startsWith('https:');
   const dummy = crypto.randomBytes(16).toString('hex') + ':' + crypto.randomBytes(64).toString('hex');
@@ -214,9 +259,24 @@ function createManagerApp({ pool, env = process.env }) {
       if (['/','/manager','/admin/'].includes(p) && method === 'GET') { res.writeHead(302, { Location: '/admin' }); return res.end(); }
       if (p.startsWith('/admin/invite') || ['/admin/stores','/admin/audit'].includes(p)) fail(404, 'Not found.');
       if (method === 'GET' && ['/admin','/admin/login'].includes(p)) {
+        const clientIndex = path.join(__dirname, 'client', 'dist', 'index.html');
+        if (fs.existsSync(clientIndex)) {
+          const html = fs.readFileSync(clientIndex, 'utf8');
+          res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+          return res.end(html);
+        }
         const html = fs.readFileSync(path.join(__dirname, 'admin.html'), 'utf8')
           .replace('<div id="stats"', '<p id="data-notice" role="status"></p><div id="stats"');
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); return res.end(html);
+      }
+      if (method === 'GET' && p.startsWith('/assets/')) {
+        const assetPath = path.join(__dirname, 'client', 'dist', p);
+        if (fs.existsSync(assetPath)) {
+          const ext = path.extname(assetPath);
+          const mime = { '.js': 'application/javascript', '.css': 'text/css', '.avif': 'image/avif', '.svg': 'image/svg+xml' }[ext] || 'application/octet-stream';
+          res.writeHead(200, { 'Content-Type': mime });
+          return res.end(fs.readFileSync(assetPath));
+        }
       }
       if (method === 'GET' && assets[p]) {
         res.writeHead(200, { 'Content-Type': assets[p][1] }); return res.end(fs.readFileSync(path.join(__dirname, assets[p][0])));
@@ -291,6 +351,25 @@ function createManagerApp({ pool, env = process.env }) {
           await audit(client, session.id, 'alert_read', String(input.id));
         });
         return json(200, { ok: true });
+      }
+      if (p === '/admin/orders/status' && method === 'POST') {
+        if (!permissions.has('orders')) fail(403, 'Permission denied.');
+        const orderId = text(input.id || input.order_id, 100);
+        const newStatus = text(input.status, 30);
+        if (!['paid', 'payment_pending', 'shipped', 'delivered', 'cancelled'].includes(newStatus)) {
+          fail(400, 'Invalid status.');
+        }
+        await transaction(pool, async client => {
+          const result = await client.query(
+            `UPDATE mcc_manager.admin_orders SET status=$1, updated_at=$2
+             WHERE id=$3 AND store_id=$4 RETURNING id`,
+            [newStatus, Date.now(), orderId, session.store_id]
+          );
+          if (!result.rowCount) fail(404, 'Order not found.');
+          await audit(client, session.id, 'order_status_updated', orderId + ':' + newStatus);
+        });
+        const shopifyResult = await syncShopifyOrderStatus(env, orderId, newStatus);
+        return json(200, { ok: true, id: orderId, status: newStatus, shopify_synced: shopifyResult.synced });
       }
       fail(404, 'Not found.');
     } catch (error) {
